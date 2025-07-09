@@ -4,17 +4,31 @@
 #include <iostream>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <netitnet/in.h>
+#include <netinet/in.h>
 #include <vector>
 #include <thread>
+#include <cstring>
 
 // Global instance of RedisServer
 static RedisServer* globalServer = nullptr;
+
+void signalHandler(int signum) {
+    if (globalServer) {
+        std::cout << "Received signal " << signum << ", shutting down server...\n";
+        globalServer->shutdown();
+    }
+    exit(signum);
+}
+
+void RedisServer::setupSignalHandler() {
+    signal(SIGINT, signalHandler);  // Handle Ctrl+C
+}
 
 // Constructor for RedisServer
 RedisServer::RedisServer(int port) : port(port), server_socket(-1), running(true) {
     // Set the global server instance
     globalServer = this; 
+    setupSignalHandler(); // Setup signal handling for graceful shutdown
 }
 
 void RedisServer::shutdown() {
@@ -37,11 +51,11 @@ void RedisServer::run() {
     }
     
     int opt = 1;
-    setsockopt(server_socket, SQL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
     
-    sockaddr_in server_Addr{};
+    sockaddr_in serverAddr{};
     serverAddr.sin_family = AF_INET;
-    sererAddr.sin_port = htons(port);
+    serverAddr.sin_port = htons(port);
     serverAddr.sin_addr.s_addr = INADDR_ANY;
 
     // bind and listen, if it works then our redis is listening on the port
@@ -52,7 +66,7 @@ void RedisServer::run() {
     }
 
     if (listen(server_socket, 10) < 0) {
-        std:cerr << "Error listening on server socket\n";
+        std::cerr << "Error listening on server socket\n";
         return;
     }
 
@@ -70,7 +84,7 @@ void RedisServer::run() {
             }
             break;
         }
-        threads.emplace.back([client_socket, &cmdHandler]() {
+        threads.emplace_back([client_socket, &cmdHandler]() {
             char buffer[1024];
             while (true) {
                 memset(buffer, 0, sizeof(buffer));
@@ -94,6 +108,12 @@ void RedisServer::run() {
     }
 
     // before shutdown check for persisting the database
+    if (RedisDatabase::getInstance().dump("dump.my_rdb")) {
+        std::cout << "Database dumped successfully to dump.my_rdb\n";
+    } else {
+        std::cerr << "Error dumping database\n";
+    }
 
     // shutdown
+
 }
