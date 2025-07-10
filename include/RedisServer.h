@@ -18,7 +18,7 @@ class RedisServer {
         std::atomic<bool> running;
         
         // setup signal handling for graceful shutdown (even if we force quit with ctrl c will shutdown properly)
-        void setupSignalHandling();
+        void setupSignalHandler();
 };
 
 #endif

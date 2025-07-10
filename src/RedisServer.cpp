@@ -1,5 +1,6 @@
 #include "../include/RedisServer.h"
 #include "../include/RedisCommandHandler.h"
+#include "../include/RedisDatabase.h"
 
 #include <iostream>
 #include <sys/socket.h>
@@ -8,6 +9,7 @@
 #include <vector>
 #include <thread>
 #include <cstring>
+#include <signal.h>
 
 // Global instance of RedisServer
 static RedisServer* globalServer = nullptr;
@@ -20,7 +22,7 @@ void signalHandler(int signum) {
     exit(signum);
 }
 
-void RedisServer::setupSignalHandler() {
+void RedisServer::SetupSignalHandler() {
     signal(SIGINT, signalHandler);  // Handle Ctrl+C
 }
 
