@@ -230,10 +230,11 @@ bool RedisDatabase::lindex(const std::string& key, int index, std::string& value
         return false; // Key not found
     }
     const auto& lst = it->second;
+    int vecSize = static_cast<int>(lst.size());
     if (index < 0) {
         index = lst.size() + index;
     }
-    if (index < 0 || static_cast<size_t>(index) >= lst.size()) {
+    if (index < 0 || index >= static_cast<int>(lst.size())) {
         return false; // Index out of range
     }
 
@@ -253,7 +254,7 @@ bool RedisDatabase::lset(const std::string& key, int index, const std::string& v
     if (index < 0) {
         index = lst.size() + index;
     }
-    if (index < 0 || static_cast<size_t>(index) >= lst.size()) {
+    if (index < 0 || index >= static_cast<int>(lst.size())) {
         return false; // Index out of range
     }
 
@@ -261,6 +262,97 @@ bool RedisDatabase::lset(const std::string& key, int index, const std::string& v
     return true;
         
 }
+
+// Hash operations
+bool RedisDatabase::hset(const std::string& key, const std::string& field, const std::string& value) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    hash_store[key][field] = value; // Set the field in the hash
+    return true;
+}
+
+bool RedisDatabase::hget(const std::string& key, const std::string& field, std::string& value) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    auto it = hash_store.find(key);
+    if (it != hash_store.end()) {
+        auto fieldIt = it->second.find(field);
+        if (fieldIt != it->second.end()) {
+            value = fieldIt->second; // Get the value for the field
+            return true;
+        }
+    }
+    return false; // Key or field not found
+}
+
+bool RedisDatabase::hexists(const std::string& key, const std::string& field) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    auto it = hash_store.find(key);
+    if (it != hash_store.end()) {
+        return it->second.find(field) != it->second.end(); // Check if field exists
+    }
+    return false; // Key not found
+}
+
+bool RedisDatabase::hdel(const std::string& key, const std::string& field) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    auto it = hash_store.find(key);
+    if (it != hash_store.end()) {
+        return it->second.erase(field) > 0; // Remove field from the hash
+    }
+    return false; // Key not found
+}
+
+std::unordered_map<std::string, std::string> RedisDatabase::hgetall(const std::string& key) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    auto it = hash_store.find(key);
+    if (it != hash_store.end()) {
+        return it->second; // Return the entire hash
+    }
+    return {}; // Key not found, return empty map
+}
+
+std::vector<std::string> RedisDatabase::hkeys(const std::string& key) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    auto it = hash_store.find(key);
+    if (it != hash_store.end()) {
+        std::vector<std::string> keys;
+        for (const auto& pair : it->second) {
+            keys.push_back(pair.first); // Collect all field names
+        }
+        return keys;
+    }
+    return {}; // Key not found, return empty vector
+}
+
+std::vector<std::string> RedisDatabase::hvals(const std::string& key) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    auto it = hash_store.find(key);
+    if (it != hash_store.end()) {
+        std::vector<std::string> values;
+        for (const auto& pair : it->second) {
+            values.push_back(pair.second); // Collect all field values
+        }
+        return values;
+    }
+    return {}; // Key not found, return empty vector
+}
+
+ssize_t RedisDatabase::hlen(const std::string& key) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    auto it = hash_store.find(key);
+    if (it != hash_store.end()) {
+        return it->second.size(); // Return the number of fields in the hash
+    }
+    return 0; // Key not found or not a hash
+}
+
+bool RedisDatabase::hmset(const std::string& key, const std::unordered_map<std::string, std::string>& fields) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    for (const auto& pair : fields) {
+        hash_store[key][pair.first] = pair.second; // Set each field in the hash
+    }
+    return true;
+}
+
 
 /*
 Simple text based persistence format where each line encodes a record

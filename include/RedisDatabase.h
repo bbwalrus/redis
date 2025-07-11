@@ -34,6 +34,17 @@ class RedisDatabase {
         bool lindex(const std::string& key, int index, std::string& value); // Get value at index in the list
         bool lset(const std::string& key, int index, const std::string& value); // Set value at index in the list
 
+        // hash operations
+        bool hset(const std::string& key, const std::string& field, const std::string& value);
+        bool hget(const std::string& key, const std::string& field, std::string& value);
+        bool hexists(const std::string& key, const std::string& field);
+        bool hdel(const std::string& key, const std::string& field);
+        std::unordered_map<std::string, std::string> hgetall(const std::string& key); // Get all fields and values in a hash
+        std::vector<std::string> hkeys(const std::string& key); // Get all fields in a hash
+        std::vector<std::string> hvals(const std::string& key); // Get all values in a hash
+        ssize_t hlen(const std::string& key); // Get length of hash
+        bool hmset(const std::string& key, const std::unordered_map<std::string, std::string>& fields); // Set multiple fields in a hash
+
         // Persistance: Dump / load database from file
         bool dump(const std::string& filename);
         bool load(const std::string& filename);
