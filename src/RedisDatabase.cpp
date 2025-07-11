@@ -220,6 +220,7 @@ int RedisDatabase::lrem(const std::string& key, int count, const std::string& va
             }
         }
     }
+    return removed;
 }
 
 // Get value at index in the list
@@ -230,7 +231,6 @@ bool RedisDatabase::lindex(const std::string& key, int index, std::string& value
         return false; // Key not found
     }
     const auto& lst = it->second;
-    int vecSize = static_cast<int>(lst.size());
     if (index < 0) {
         index = lst.size() + index;
     }
