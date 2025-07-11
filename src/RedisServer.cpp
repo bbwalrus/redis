@@ -22,7 +22,7 @@ void signalHandler(int signum) {
     exit(signum);
 }
 
-void RedisServer::SetupSignalHandler() {
+void RedisServer::setupSignalHandler() {
     signal(SIGINT, signalHandler);  // Handle Ctrl+C
 }
 
